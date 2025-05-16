@@ -1,3 +1,7 @@
 svg {
   border: solid;
 }
+
+#statsTable td {
+  padding-right: 0.5em; 
+}

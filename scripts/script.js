@@ -19,7 +19,7 @@ document.getElementById("startButton")
             }
             reader.readAsText(input_file);
           }
-        )
+);
 
 function processData(csv_string){
   const data = d3.csvParse(csv_string, function(d, i) {
@@ -28,9 +28,11 @@ function processData(csv_string){
 
   console.log(data);
 
+  // general life stats
+  genLifeStats(data); 
+
   genBooksByYearBarGraph(data); 
 
-  // general lifestats
 
   // wikidata
   // gender break down 
@@ -43,6 +45,46 @@ function processData(csv_string){
   // sexual orientation - if I can get the data 
 
   // 
+}
+
+function genLifeStats(data){
+  let activeStat = data[0]["Date Added"]; 
+  let bookCount = 0; 
+  let pageCount = 0; 
+  let fiveStarCount = 0; 
+  let earliestBook = null; 
+  let ratingTotal = 0; 
+  data.forEach(function(row){
+    console.log(row); 
+    if(activeStat > row["Date Added"]) activeStat = row["Date Added"];
+    if((!(!row["Date Read"] || !row["Date Read"].trim()) && (earliestBook == null || earliestBook > row["Date Read"]))){
+      console.log("new:", row["Date Read"]); 
+      earliestBook = row["Date Read"];
+    }
+
+    if(row["Exclusive Shelf"] == "read"){
+      bookCount++;
+      pageCount += Number(row["Number of Pages"]); 
+      if(row["My Rating"] == "5") fiveStarCount++; 
+      ratingTotal += Number(row["My Rating"]); 
+    }
+  });
+  
+
+  document.getElementById("activeStat").innerText = activeStat; 
+  document.getElementById("earliestStat").innerText = earliestBook; 
+  document.getElementById("readStat").innerText = bookCount; 
+  document.getElementById("pagesStat").innerText = pageCount; 
+  document.getElementById("fiveStarStat").innerText = fiveStarCount; 
+  document.getElementById("ratingStat").innerText = (ratingTotal / bookCount).toFixed(2); 
+
+  let today = new Date(); 
+  let start = new Date(earliestBook); 
+  let days = Math.abs(today - start) / (1000 * 60 * 60 * 24); 
+
+
+  document.getElementById("AbpyStat").innerText = (bookCount / days * 365).toFixed(2); 
+  document.getElementById("AppyStat").innerText = (pageCount / days * 365).toFixed(2); 
 }
 
 function genBooksByYearBarGraph(data){
