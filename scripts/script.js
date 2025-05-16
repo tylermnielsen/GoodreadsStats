@@ -28,6 +28,24 @@ function processData(csv_string){
 
   console.log(data);
 
+  genBooksByYearBarGraph(data); 
+
+  // general lifestats
+
+  // wikidata
+  // gender break down 
+
+  // Country breakdown
+  // citizenship
+  
+  // birth 
+
+  // sexual orientation - if I can get the data 
+
+  // 
+}
+
+function genBooksByYearBarGraph(data){
   console.log("By year bar chart"); 
 
   // Define dimensions and margins for the chart area
