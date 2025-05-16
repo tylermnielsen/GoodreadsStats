@@ -99,4 +99,35 @@ function processData(csv_string){
       .attr("text-anchor", "middle")
       .attr("fill", "black")
       .attr("font-size", x.bandwidth() / 2); 
+
+  setupSaveSVG("BooksByYear")
+}
+
+function setupSaveSVG(target, name = target){
+  var svg = document.getElementById(target); 
+  console.log("svg:", svg); 
+
+  var serializer = new XMLSerializer(); 
+  var source = serializer.serializeToString(svg); 
+
+  //add name spaces.
+  if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+      source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+  }
+  if(!source.match(/^<svg[^>]+"http\:\/\/www\.w3\.org\/1999\/xlink"/)){
+      source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+  }
+
+  source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+
+  const blob = new Blob([source], { type: 'text/plain'}); 
+  const url = URL.createObjectURL(blob); 
+
+  let newA = document.createElement('a'); 
+  newA.text = "Download Graphic"; 
+  newA.href = url; 
+  newA.download = `${name}.svg`; 
+
+  document.getElementById(target).append(newA); 
+  
 }
