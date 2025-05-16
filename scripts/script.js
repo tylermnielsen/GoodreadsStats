@@ -128,6 +128,7 @@ function setupSaveSVG(target, name = target){
   newA.href = url; 
   newA.download = `${name}.svg`; 
 
+  document.getElementById(target).append(document.createElement('br')); 
   document.getElementById(target).append(newA); 
-  
+
 }
