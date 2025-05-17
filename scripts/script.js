@@ -39,7 +39,8 @@ function processData(csv_string){
     return d["Exclusive Shelf"] == "read"; 
   });
   // var author_wikidata = getAuthorWikidata(read_data); 
-  console.log(queryWikiDataAuthor("JRR Tolkien")); 
+  console.log("testing"); 
+  console.log("Tolkien", queryWikiDataAuthor("JRR Tolkien")); 
   // gender break down 
   // genBooksByGenderPieChart(data, author_wikidata); 
 
