@@ -35,7 +35,13 @@ function processData(csv_string){
 
 
   // wikidata
+  var read_data = data.filter(function(d){
+    return d["Exclusive Shelf"] == "read"; 
+  });
+  // var author_wikidata = getAuthorWikidata(read_data); 
+  console.log(queryWikiDataAuthor("JRR Tolkien")); 
   // gender break down 
+  // genBooksByGenderPieChart(data, author_wikidata); 
 
   // Country breakdown
   // citizenship
@@ -45,6 +51,178 @@ function processData(csv_string){
   // sexual orientation - if I can get the data 
 
   // 
+}
+
+function queryWikiDataAuthor(query){
+    const endpoint = "https://www.wikidata.org/w/api.php"
+
+    params = {
+      "action": "wbsearchentities",
+      "format": "json",
+      "search": query,
+      "language": "en"
+    }
+
+    fetch(endpoint, {
+      method: 'POST',
+      body: params, 
+      headers: {
+        "Access-Control-Allow-Origin": "https://www.wikidata.org/w/api.php"
+      }
+    }).then(response => {
+      console.log(response); 
+      if(response.ok){
+        const author_json = response.json(); 
+        return author_json["search"][0]; 
+      } else {
+        console.log("query failed");
+        return null; 
+      }
+    });
+}
+
+function getAuthorWikidata(data){
+  console.log("Getting author data"); 
+  var authors = {};
+
+  
+  data.forEach(function(row){
+    if(authors[row["Author"]]) return; 
+
+    var res = queryWikiData(row["Author"]);
+
+    if(res != null) authors[row["Author"]] = res; 
+  });
+
+  
+  return authors; 
+}
+
+function translateWikiId(id){
+  const endpoint = "https://www.wikidata.org/w/api.php"
+  
+  params = {
+    "action": "wbsearchentities",
+    "format": "json",
+    "search": id,
+    "language": "en"
+  }
+
+  
+}
+
+function genBooksByGenderPieChart(data, wikidata){
+  console.log("gender pie"); 
+  const margin = { top: 40, right: 30, bottom: 50, left: 80 },
+    width = 500 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+  var svg = d3.select("#BooksByGender")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+}
+
+function genBooksByYearBarGraph(data){
+  console.log("By year bar chart"); 
+
+  // Define dimensions and margins for the chart area
+  const margin = { top: 40, right: 30, bottom: 50, left: 80 },
+    width = 800 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+  var svg = d3.select("#BooksByYear")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // prep data 
+  let by_year = {};
+  data.forEach(element => {
+    if(element["Date Read"] != "" || element["Data Read"] == NaN){
+      let year = new Date(element["Date Read"]).getFullYear();
+      if(year == NaN) return false; 
+      by_year[year] = (by_year[year])? by_year[year] + 1 : 1; 
+    }
+  });
+  console.log("by_year:", by_year); 
+
+  var x = d3.scaleBand()
+    .range([0,width])
+    .domain(Object.keys(by_year))
+    .padding(0.2); 
+
+  svg.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x))
+    .selectAll("text")
+      // .attr("transform", "translate(-10,0)rotate(-45)")
+      .style("text-anchor", "middle")
+      .attr("font-size", 15);
+
+  console.log("at y", Math.max(...Object.values(by_year))); 
+  var y = d3.scaleLinear()
+    .domain([0, Math.max(...Object.values(by_year))])
+    .range([height, 0]); 
+
+  svg.append("g")
+    .call(d3.axisLeft(y)); 
+
+
+  svg.selectAll("mybar")
+    .data(Object.entries(by_year))
+    .enter()
+    .append('rect')
+      .attr("x", function(d) { return x(d[0]) })
+      .attr("y", function(d) { return y(d[1]) })
+      .attr("width", x.bandwidth())
+      .attr("height", function(d) { 
+        return height - y(d[1]);
+      })
+      .attr("fill", "#69b3a2")
+
+  svg.selectAll("mybar")
+    .data(Object.entries(by_year))
+    .enter()
+    .append('text')
+      .text(function(d) { return d[1] })
+      .attr("x", function(d) { return x(d[0]) + x.bandwidth() / 2 })
+      .attr("y", function(d) { 
+        if(y(d[1]) + x.bandwidth() / 2 < height - margin.bottom ) return y(d[1]) + x.bandwidth() / 2; 
+        else return y(d[1]) - x.bandwidth() / 8; 
+      })
+      .attr("text-anchor", "middle")
+      .attr("fill", "black")
+      .attr("font-size", x.bandwidth() / 2); 
+
+  svg.append("text")
+    .text("Books Read Each Year")
+    .attr("text-anchor", "end")
+    .attr("font-size", 30)
+    .attr("x", width - margin.right)
+    .attr("y", y(Math.max(...Object.values(by_year))) * 1.1);  
+
+  svg.append("text")
+    .text("Number of Books")
+    .attr("text-anchor", "middle")
+    .attr("font-size", 20)
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", -margin.left / 2);
+
+  svg.append("text")
+    .text("Year")
+    .attr("text-anchor", "middle")
+    .attr("font-size", 20)
+    .attr("x", width / 2)
+    .attr("y", height + 4 * margin.bottom / 5)
+
+  setupSaveSVG("BooksByYear")
 }
 
 function genLifeStats(data){
@@ -85,82 +263,6 @@ function genLifeStats(data){
 
   document.getElementById("AbpyStat").innerText = (bookCount / days * 365).toFixed(2); 
   document.getElementById("AppyStat").innerText = (pageCount / days * 365).toFixed(2); 
-}
-
-function genBooksByYearBarGraph(data){
-  console.log("By year bar chart"); 
-
-  // Define dimensions and margins for the chart area
-  const margin = { top: 40, right: 30, bottom: 50, left: 80 },
-    width = 800 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
-
-  var svg = d3.select("#BooksByYear")
-    .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-  // prep data 
-  let by_year = {};
-  data.forEach(element => {
-    if(element["Date Read"] != "" || element["Data Read"] == NaN){
-      let year = new Date(element["Date Read"]).getFullYear();
-      if(year == NaN) return false; 
-      by_year[year] = (by_year[year])? by_year[year] + 1 : 1; 
-    }
-  });
-  console.log("by_year:", by_year); 
-
-  var x = d3.scaleBand()
-    .range([0,width])
-    .domain(Object.keys(by_year))
-    .padding(0.2); 
-
-  svg.append("g")
-    .attr("transform", "translate(0," + height + ")")
-    .call(d3.axisBottom(x))
-    .selectAll("text")
-      .attr("transform", "translate(-10,0)rotate(-45)")
-      .style("text-anchor", "end"); 
-
-  console.log("at y", Math.max(...Object.values(by_year))); 
-  var y = d3.scaleLinear()
-    .domain([0, Math.max(...Object.values(by_year))])
-    .range([height, 0]); 
-
-  svg.append("g")
-    .call(d3.axisLeft(y)); 
-
-
-  svg.selectAll("mybar")
-    .data(Object.entries(by_year))
-    .enter()
-    .append('rect')
-      .attr("x", function(d) { return x(d[0]) })
-      .attr("y", function(d) { return y(d[1]) })
-      .attr("width", x.bandwidth())
-      .attr("height", function(d) { 
-        return height - y(d[1]);
-      })
-      .attr("fill", "#69b3a2")
-
-  svg.selectAll("mybar")
-    .data(Object.entries(by_year))
-    .enter()
-    .append('text')
-      .text(function(d) { return d[1] })
-      .attr("x", function(d) { return x(d[0]) + x.bandwidth() / 2 })
-      .attr("y", function(d) { 
-        if(y(d[1]) + x.bandwidth() / 2 < height - margin.bottom ) return y(d[1]) + x.bandwidth() / 2; 
-        else return y(d[1]) - x.bandwidth() / 8; 
-      })
-      .attr("text-anchor", "middle")
-      .attr("fill", "black")
-      .attr("font-size", x.bandwidth() / 2); 
-
-  setupSaveSVG("BooksByYear")
 }
 
 function setupSaveSVG(target, name = target){
