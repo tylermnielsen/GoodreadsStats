@@ -126,7 +126,7 @@ async function getAuthorWikidata(data){
 
   progress.innerHTML = `Done getting author information, found ${data.length-misses.length} out of ${data.length} authors! <br />
   Author data is queried from <a href="www.wikidata.org" target="_blank">Wikidata</a> by name so if a name or alias mismatches between Goodreads and Wikidata there can be a miss even if the author does exist on Wikidata.
-  If the author doesn't exist on Wikidata and you think they should be, <a href="https://www.wikidata.org/wiki/Wikidata:Contribute" target="_blank">add them!</a> Remember Wikidata and other Wikimedia projects are supported by user edits. 
+  If the author doesn't exist on Wikidata and you think they should, <a href="https://www.wikidata.org/wiki/Wikidata:Contribute" target="_blank">add them!</a> Wikidata and other Wikimedia projects are supported by user edits. 
   `;
 
   return authors; 
@@ -146,8 +146,8 @@ function genBooksByGenderPieChart(data, wikidata){
     }
   }
 
-  const margin = { top: 100, right: 200, bottom: 100, left: 100 },
-    width = 700 - margin.left - margin.right,
+  const margin = { top: 100, right: 300, bottom: 100, left: 100 },
+    width = 800 - margin.left - margin.right,
     height = 600 - margin.top - margin.bottom;
 
   const radius = Math.min(width, height) / 2;
@@ -177,7 +177,7 @@ function genBooksByGenderPieChart(data, wikidata){
     .innerRadius(0)
     .outerRadius(radius); 
 
-  svg.selectAll("mySlices")
+  var slices = svg.selectAll("mySlices")
     .data(data_ready)
     .join("path")
       .attr("d", arcGenerator)
@@ -188,44 +188,56 @@ function genBooksByGenderPieChart(data, wikidata){
       .style("stroke-width", "2px")
       .style("opacity", 0.7);
 
-      // on slice labels 
-  // svg.selectAll("mySlices")
-  //   .data(data_ready)
-  //   .join("text")
-  //   .text(function(d) { 
-  //     return `${d.data[0]} (${(d.data[1] / Object.keys(wikidata).length * 100).toFixed(2)}%)`;
-  //   })
-  //   .attr("transform", function(d) { 
-  //     let factor = 2.1; 
-  //     return `translate(${arcGenerator.centroid(d)[0]*factor}, ${arcGenerator.centroid(d)[1]*factor})`;
-  //   })
-  //   .style("text-anchor", function(d) {
-  //     let pos = arcGenerator.centroid(d)[0];
-  //     if(pos < 0){
-  //       return "end"; 
-  //     } else {
-  //       return "start"; 
-  //     }
-  //   })
-  //   .style("font-size", 17); 
+  slices.on('mouseover', function (event, d) {
+    d3.select(this)
+        .transition()
+        .duration(200)
+        .attr('transform', 'scale(1.1)');
+    svg.append("text")
+      .attr("id", "pie_temp")
+      .text(`${d.data[0]} (${(d.data[1] / Object.keys(wikidata).length * 100).toFixed(2)}%)`)
+      .attr("transform", function() { 
+        let factor = 2.3; 
+        return `translate(${arcGenerator.centroid(d)[0]*factor}, ${arcGenerator.centroid(d)[1]*factor})`;
+      })
+      .style("text-anchor", function() {
+        let pos = arcGenerator.centroid(d)[0];
+        if(pos < 0){
+          return "end"; 
+        } else {
+          return "start"; 
+        }
+      })
+      .style("font-size", 17)
+      
+    // console.log(d); 
+  })
+  .on('mouseout', function (event, d) {
+      d3.select(this)
+          .transition()
+          .duration(200)
+          .attr('transform', 'scale(1)');
+
+      d3.selectAll("#pie_temp").remove(); 
+  });
 
   svg.selectAll('myLegend')     
     .data(data_ready)     
     .enter()     
     .append('text')     
-    .attr('x', 4 * width / 7)     
+    .attr('x', 4.5 * width / 7)     
     .attr('y', (d, i) => {
       return -height / 2 + i * 20; 
     })
     .text(d => {
-      return `${d.data[0]}: ${d.data[1]}`;
+      return `${d.data[0]}: ${d.data[1]} (${(d.data[1]/Object.keys(wikidata).length).toFixed(2)}%)`;
     });
 
   svg.selectAll('myLegendBoxes')
     .data(data_ready)
     .enter()
     .append("rect")
-    .attr("x", 4 * width / 7 - 25)
+    .attr("x", 4.5 * width / 7 - 25)
     .attr('y', (d, i) => {
       return -height / 2 + i * 20 - 10; 
     })
@@ -241,6 +253,8 @@ function genBooksByGenderPieChart(data, wikidata){
     .attr("y", -(height + margin.top) / 2 )
     .attr("text-anchor", "middle")
     .attr("font-size", 30); 
+
+  setupSaveSVG("BooksByGender"); 
 }
 
 function genBooksByYearBarGraph(data){
