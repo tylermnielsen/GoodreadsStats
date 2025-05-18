@@ -146,7 +146,7 @@ function genBooksByGenderPieChart(data, wikidata){
     }
   }
 
-  const margin = { top: 100, right: 300, bottom: 100, left: 200 },
+  const margin = { top: 100, right: 300, bottom: 100, left: 300 },
     width = 900 - margin.left - margin.right,
     height = 600 - margin.top - margin.bottom;
 
