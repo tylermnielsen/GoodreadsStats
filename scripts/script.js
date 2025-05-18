@@ -146,8 +146,8 @@ function genBooksByGenderPieChart(data, wikidata){
     }
   }
 
-  const margin = { top: 100, right: 300, bottom: 100, left: 100 },
-    width = 800 - margin.left - margin.right,
+  const margin = { top: 100, right: 300, bottom: 100, left: 200 },
+    width = 900 - margin.left - margin.right,
     height = 600 - margin.top - margin.bottom;
 
   const radius = Math.min(width, height) / 2;
