@@ -46,7 +46,7 @@ async function processData(csv_string){
   console.log(author_wikidata); 
   
   // gender break down 
-  // genBooksByGenderPieChart(data, author_wikidata); 
+  genBooksByGenderPieChart(data, author_wikidata); 
 
   // Country breakdown
   // citizenship
@@ -101,9 +101,12 @@ async function getAuthorWikidata(data){
   console.log(data); 
   console.log("Getting author data"); 
   var authors = {};
+  let progress = document.getElementById("wikidataProgress");
+  let misses = []; 
 
   for(let i = 0; i < data.length; i++){
     let target_author = data[i]["Author"].split(/[ ]+/).join(" ").split(".").join(""); 
+    progress.innerText = `Getting Author Information from WikiData (this can take a bit): ${i+1}/${data.length} (${target_author})`;
     if(authors[target_author]) continue; 
 
     console.log("looking for", target_author); 
@@ -115,25 +118,129 @@ async function getAuthorWikidata(data){
         "name": await queryWikiDataLabel("wd:"+res["item"]["value"].split("/")[4]),
         "gender": await queryWikiDataLabel("wd:"+res["gender"]["value"].split("/")[4])
       }; 
+    } else {
+      misses.push(target_author); 
     }
+
   }
+
+  progress.innerHTML = `Done getting author information, found ${data.length-misses.length} out of ${data.length} authors! <br />
+  Author data is queried from <a href="www.wikidata.org" target="_blank">Wikidata</a> by name so if a name or alias mismatches between Goodreads and Wikidata there can be a miss even if the author does exist on Wikidata.
+  If the author doesn't exist on Wikidata and you think they should be, <a href="https://www.wikidata.org/wiki/Wikidata:Contribute" target="_blank">add them!</a> Remember Wikidata and other Wikimedia projects are supported by user edits. 
+  `;
 
   return authors; 
 }
 
 function genBooksByGenderPieChart(data, wikidata){
   console.log("gender pie"); 
-  const margin = { top: 40, right: 30, bottom: 50, left: 80 },
-    width = 500 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
+
+  // count 
+  var genders = {}; 
+  for(const author in wikidata){
+    // console.log(wikidata[author]); 
+    if(genders[wikidata[author]["gender"]]){
+      genders[wikidata[author]["gender"]]++; 
+    } else {
+      genders[wikidata[author]["gender"]] = 1; 
+    }
+  }
+
+  const margin = { top: 100, right: 200, bottom: 100, left: 100 },
+    width = 700 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom;
+
+  const radius = Math.min(width, height) / 2;
+  console.log(radius); 
 
   var svg = d3.select("#BooksByGender")
     .append("svg")
       .attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom)
     .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
+      .attr("transform", `translate(${margin.left + width / 2},${margin.top + height / 2})`);
 
+  var color = d3.scaleOrdinal()
+    .range(d3.schemeSet2); 
+  
+  const pie = d3.pie()
+    .value(function(d) {
+      return d[1]; 
+    });
+
+  console.log(Object.entries(genders)); 
+  const data_ready = pie(Object.entries(genders)); 
+  console.log(data_ready); 
+
+  // shape helper
+  const arcGenerator = d3.arc()
+    .innerRadius(0)
+    .outerRadius(radius); 
+
+  svg.selectAll("mySlices")
+    .data(data_ready)
+    .join("path")
+      .attr("d", arcGenerator)
+      .attr("fill", function(d) { 
+        return(color(d.data[0]));
+      })
+      .attr("stroke", "black")
+      .style("stroke-width", "2px")
+      .style("opacity", 0.7);
+
+      // on slice labels 
+  // svg.selectAll("mySlices")
+  //   .data(data_ready)
+  //   .join("text")
+  //   .text(function(d) { 
+  //     return `${d.data[0]} (${(d.data[1] / Object.keys(wikidata).length * 100).toFixed(2)}%)`;
+  //   })
+  //   .attr("transform", function(d) { 
+  //     let factor = 2.1; 
+  //     return `translate(${arcGenerator.centroid(d)[0]*factor}, ${arcGenerator.centroid(d)[1]*factor})`;
+  //   })
+  //   .style("text-anchor", function(d) {
+  //     let pos = arcGenerator.centroid(d)[0];
+  //     if(pos < 0){
+  //       return "end"; 
+  //     } else {
+  //       return "start"; 
+  //     }
+  //   })
+  //   .style("font-size", 17); 
+
+  svg.selectAll('myLegend')     
+    .data(data_ready)     
+    .enter()     
+    .append('text')     
+    .attr('x', 4 * width / 7)     
+    .attr('y', (d, i) => {
+      return -height / 2 + i * 20; 
+    })
+    .text(d => {
+      return `${d.data[0]}: ${d.data[1]}`;
+    });
+
+  svg.selectAll('myLegendBoxes')
+    .data(data_ready)
+    .enter()
+    .append("rect")
+    .attr("x", 4 * width / 7 - 25)
+    .attr('y', (d, i) => {
+      return -height / 2 + i * 20 - 10; 
+    })
+    .attr('width', 15)
+    .attr('height', 15)
+    .attr("fill", function(d) {
+      return color(d.data[0]);
+    });
+
+  svg.append("text")
+    .text("Authors By Gender")
+    .attr("x", 0)
+    .attr("y", -(height + margin.top) / 2 )
+    .attr("text-anchor", "middle")
+    .attr("font-size", 30); 
 }
 
 function genBooksByYearBarGraph(data){
