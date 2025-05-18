@@ -21,7 +21,7 @@ document.getElementById("startButton")
           }
 );
 
-function processData(csv_string){
+async function processData(csv_string){
   const data = d3.csvParse(csv_string, function(d, i) {
     return d; 
   });
@@ -33,14 +33,18 @@ function processData(csv_string){
 
   genBooksByYearBarGraph(data); 
 
-
   // wikidata
   var read_data = data.filter(function(d){
     return d["Exclusive Shelf"] == "read"; 
   });
-  // var author_wikidata = getAuthorWikidata(read_data); 
   console.log("testing"); 
-  console.log("Tolkien", queryWikiDataAuthor("JRR Tolkien")); 
+  const res = await queryWikiDataAuthor("Jules Verne");
+  console.log(res);  
+
+  console.log(read_data); 
+  var author_wikidata = await getAuthorWikidata(read_data); 
+  console.log(author_wikidata); 
+  
   // gender break down 
   // genBooksByGenderPieChart(data, author_wikidata); 
 
@@ -54,62 +58,67 @@ function processData(csv_string){
   // 
 }
 
-function queryWikiDataAuthor(query){
-    const endpoint = "https://www.wikidata.org/w/api.php"
+// from wikipedia example with some hard coding: 
+class SPARQLQueryDispatcher {
+	constructor() {
+		this.endpoint = 'https://query.wikidata.org/sparql';
+	}
 
-    params = {
-      "action": "wbsearchentities",
-      "format": "json",
-      "search": query,
-      "language": "en"
-    }
+	query( sparqlQuery ) {
+		const fullUrl = this.endpoint + '?query=' + encodeURIComponent( sparqlQuery );
+		const headers = { 'Accept': 'application/sparql-results+json' };
 
-    fetch(endpoint, {
-      method: 'POST',
-      body: params, 
-      headers: {
-        "Access-Control-Allow-Origin": "https://www.wikidata.org/w/api.php"
-      }
-    }).then(response => {
-      console.log(response); 
-      if(response.ok){
-        const author_json = response.json(); 
-        return author_json["search"][0]; 
-      } else {
-        console.log("query failed");
-        return null; 
-      }
-    });
+		return fetch( fullUrl, { headers } ).then( body => body.json() );
+	}
+}
+// done
+
+async function queryWikiDataAuthor(query){
+  var sparqlQuery = `SELECT DISTINCT ?item ?itemLabel ?gender
+    WHERE {
+      ?item wdt:P31 wd:Q5;
+            wdt:P21 ?gender;
+            (rdfs:label|skos:altLabel) "${query}"@en.                      # Any instance of a human
+    }`;
+    const queryDispatcher = new SPARQLQueryDispatcher(); 
+
+    return (await queryDispatcher.query(sparqlQuery))["results"]["bindings"][0]; 
 }
 
-function getAuthorWikidata(data){
+async function queryWikiDataLabel(query){
+  var sparqlQuery = `SELECT DISTINCT ?item ?itemLabel
+    WHERE {
+        VALUES ?item { ${query} } # Any instance of a human
+      
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],mul,en" }
+    }`;
+    const queryDispatcher = new SPARQLQueryDispatcher(); 
+
+    return (await queryDispatcher.query(sparqlQuery))["results"]["bindings"][0]["itemLabel"]["value"]; 
+}
+
+async function getAuthorWikidata(data){
+  console.log(data); 
   console.log("Getting author data"); 
   var authors = {};
 
-  
-  data.forEach(function(row){
-    if(authors[row["Author"]]) return; 
+  for(let i = 0; i < data.length; i++){
+    let target_author = data[i]["Author"].split(/[ ]+/).join(" ").split(".").join(""); 
+    if(authors[target_author]) continue; 
 
-    var res = queryWikiData(row["Author"]);
+    console.log("looking for", target_author); 
+    const res = await queryWikiDataAuthor(target_author); 
+    console.log(res); 
 
-    if(res != null) authors[row["Author"]] = res; 
-  });
-
-  
-  return authors; 
-}
-
-function translateWikiId(id){
-  const endpoint = "https://www.wikidata.org/w/api.php"
-  
-  params = {
-    "action": "wbsearchentities",
-    "format": "json",
-    "search": id,
-    "language": "en"
+    if(res){
+      authors[target_author] = {
+        "name": await queryWikiDataLabel("wd:"+res["item"]["value"].split("/")[4]),
+        "gender": await queryWikiDataLabel("wd:"+res["gender"]["value"].split("/")[4])
+      }; 
+    }
   }
 
-  
+  return authors; 
 }
 
 function genBooksByGenderPieChart(data, wikidata){
@@ -234,10 +243,10 @@ function genLifeStats(data){
   let earliestBook = null; 
   let ratingTotal = 0; 
   data.forEach(function(row){
-    console.log(row); 
+    // console.log(row); 
     if(activeStat > row["Date Added"]) activeStat = row["Date Added"];
     if((!(!row["Date Read"] || !row["Date Read"].trim()) && (earliestBook == null || earliestBook > row["Date Read"]))){
-      console.log("new:", row["Date Read"]); 
+      // console.log("new:", row["Date Read"]); 
       earliestBook = row["Date Read"];
     }
 
