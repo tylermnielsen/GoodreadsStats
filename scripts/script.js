@@ -106,7 +106,7 @@ async function getAuthorWikidata(data){
 
   for(let i = 0; i < data.length; i++){
     let target_author = data[i]["Author"].split(/[ ]+/).join(" ").split(".").join(""); 
-    progress.innerText = `Getting Author Information from WikiData (this can take a bit): ${i+1}/${data.length} (${target_author})`;
+    progress.innerText = `Getting Author Information from WikiData (this can take a bit as the WikiData API used is rate-limited and can be throttled): ${i+1}/${data.length} (${target_author})`;
     if(authors[target_author]) continue; 
 
     console.log("looking for", target_author); 

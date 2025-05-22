@@ -5,3 +5,22 @@ svg {
 #statsTable td {
   padding-right: 0.5em; 
 }
+
+body {
+  display: flex; 
+  min-height: 100vh; 
+  flex-direction: column; 
+  justify-content: space-between;
+}
+
+footer {
+  margin-top: auto;
+  padding-top: 2em;
+}
+
+footer a img {
+  display: block; 
+  margin-left: auto; 
+  padding: 1em;
+}
+
