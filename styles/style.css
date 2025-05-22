@@ -6,11 +6,30 @@ svg {
   padding-right: 0.5em; 
 }
 
-body {
+#overall {
   display: flex; 
   min-height: 100vh; 
   flex-direction: column; 
   justify-content: space-between;
+  text-align: center;
+  max-width: 900px;
+  margin-left: auto; 
+  margin-right: auto;  
+}
+
+#statsTable {
+  margin-left: auto; 
+  margin-right: auto; 
+}
+
+#output div svg {
+  display: block; 
+  margin-left: auto; 
+  margin-right: auto; 
+}
+
+#output div {
+  text-align: center;
 }
 
 footer {

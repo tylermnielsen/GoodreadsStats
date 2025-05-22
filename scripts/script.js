@@ -55,7 +55,16 @@ async function processData(csv_string){
 
   // sexual orientation - if I can get the data 
 
-  // 
+  
+  // set max
+  let svg_tags = document.getElementsByTagName("svg");
+  console.log(svg_tags);  
+  let svg_max_width = 0; 
+  for(let t of svg_tags){
+    svg_max_width = Math.max(svg_max_width, t.width); 
+  }
+  console.log(svg_max_width); 
+  document.getElementById("overall").setAttribute("max-width", svg_max_width * 1.1); 
 }
 
 // from wikipedia example with some hard coding: 
