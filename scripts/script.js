@@ -114,9 +114,11 @@ async function getAuthorWikidata(data){
   let misses = []; 
 
   for(let i = 0; i < data.length; i++){
-    let target_author = data[i]["Author"].split(/[ ]+/).join(" ").split(".").join(""); 
+    let target_author = data[i]["Author"].split(/[ ]+/).join(" "); 
     progress.innerText = `Getting Author Information from WikiData (this can take a bit as the WikiData API used is rate-limited and can be throttled): ${i+1}/${data.length} (${target_author})`;
-    if(authors[target_author]) continue; 
+    if(authors[target_author]) {
+      continue; 
+    }
 
     console.log("looking for", target_author); 
     const res = await queryWikiDataAuthor(target_author); 
@@ -128,15 +130,50 @@ async function getAuthorWikidata(data){
         "gender": await queryWikiDataLabel("wd:"+res["gender"]["value"].split("/")[4])
       }; 
     } else {
-      misses.push(target_author); 
-    }
+      let retry_target = target_author.split(/\.[ ]*/).join(". "); 
+      console.log("second try looking for", retry_target); 
+      const res2 = await queryWikiDataAuthor(retry_target); 
+      console.log(res2); 
 
+      if(res2){
+        authors[target_author] = {
+          "name": await queryWikiDataLabel("wd:"+res2["item"]["value"].split("/")[4]),
+          "gender": await queryWikiDataLabel("wd:"+res2["gender"]["value"].split("/")[4])
+        }; 
+      } else {
+        let final_target = ""; 
+        let final_split = retry_target.split(/\.[ ]*/);
+        final_target += final_split[0]; 
+        for(let i = 1; i < final_split.length; i++){
+          if(final_split[i-1].length == 1 && final_split[i].length == 1){
+            final_target += final_split[i]; 
+          } else {
+            final_target += " " + final_split[i]; 
+          }
+        }
+        console.log("second try looking for", final_target); 
+        const res3 = await queryWikiDataAuthor(final_target); 
+        console.log(res3); 
+
+        if(res3){
+          authors[target_author] = {
+            "name": await queryWikiDataLabel("wd:"+res3["item"]["value"].split("/")[4]),
+            "gender": await queryWikiDataLabel("wd:"+res3["gender"]["value"].split("/")[4])
+          }; 
+        }
+        else {
+          misses.push(target_author); 
+        }
+      }
+    }
   }
 
   progress.innerHTML = `Done getting author information, found ${data.length-misses.length} out of ${data.length} authors! <br />
   Author data is queried from <a href="www.wikidata.org" target="_blank">Wikidata</a> by name so if a name or alias mismatches between Goodreads and Wikidata there can be a miss even if the author does exist on Wikidata.
   If the author doesn't exist on Wikidata and you think they should, <a href="https://www.wikidata.org/wiki/Wikidata:Contribute" target="_blank">add them!</a> Wikidata and other Wikimedia projects are supported by user edits. 
   `;
+
+  console.log("Misses:", misses); 
 
   return authors; 
 }
