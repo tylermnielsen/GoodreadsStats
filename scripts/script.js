@@ -277,8 +277,10 @@ function genBooksByGenderPieChart(data, wikidata){
       d3.selectAll("#pie_temp").remove(); 
   });
 
+  let sorted_for_legend = [...data_ready].sort((a, b) => d3.descending(a.value, b.value))
+
   svg.selectAll('myLegend')     
-    .data(data_ready)     
+    .data(sorted_for_legend)     
     .enter()     
     .append('text')     
     .attr('x', 4.5 * width / 7)     
@@ -290,7 +292,7 @@ function genBooksByGenderPieChart(data, wikidata){
     });
 
   svg.selectAll('myLegendBoxes')
-    .data(data_ready)
+    .data(sorted_for_legend)
     .enter()
     .append("rect")
     .attr("x", 4.5 * width / 7 - 25)
