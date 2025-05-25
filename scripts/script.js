@@ -131,9 +131,12 @@ async function getAuthorWikidata(data){
       }; 
     } else {
       let retry_target = target_author.split(/\.[ ]*/).join(". "); 
-      console.log("second try looking for", retry_target); 
-      const res2 = await queryWikiDataAuthor(retry_target); 
-      console.log(res2); 
+      var res2 = null; 
+      if(retry_target != target_author){
+        console.log("second try looking for", retry_target); 
+        res2 = await queryWikiDataAuthor(retry_target); 
+        console.log(res2); 
+      }
 
       if(res2){
         authors[target_author] = {
@@ -151,9 +154,12 @@ async function getAuthorWikidata(data){
             final_target += " " + final_split[i]; 
           }
         }
-        console.log("second try looking for", final_target); 
-        const res3 = await queryWikiDataAuthor(final_target); 
-        console.log(res3); 
+        var res3 = null; 
+        if(final_target != target_author){
+          console.log("second try looking for", final_target); 
+          res3 = await queryWikiDataAuthor(final_target); 
+          console.log(res3); 
+        }
 
         if(res3){
           authors[target_author] = {
@@ -171,7 +177,11 @@ async function getAuthorWikidata(data){
   progress.innerHTML = `Done getting author information, found ${data.length-misses.length} out of ${data.length} authors! <br />
   Author data is queried from <a href="www.wikidata.org" target="_blank">Wikidata</a> by name so if a name or alias mismatches between Goodreads and Wikidata there can be a miss even if the author does exist on Wikidata.
   If the author doesn't exist on Wikidata and you think they should, <a href="https://www.wikidata.org/wiki/Wikidata:Contribute" target="_blank">add them!</a> Wikidata and other Wikimedia projects are supported by user edits. 
+  <br />
+  Misses: ${misses.join(", ")}.
   `;
+
+
 
   console.log("Misses:", misses); 
 
