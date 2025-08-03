@@ -178,10 +178,30 @@ async function getAuthorWikidata(data){
   Author data is queried from <a href="www.wikidata.org" target="_blank">Wikidata</a> by name so if a name or alias mismatches between Goodreads and Wikidata there can be a miss even if the author does exist on Wikidata.
   If the author doesn't exist on Wikidata and you think they should, <a href="https://www.wikidata.org/wiki/Wikidata:Contribute" target="_blank">add them!</a> Wikidata and other Wikimedia projects are supported by user edits. 
   <br />
-  Misses: ${misses.join(", ")}.
+  <button type="button" class="collapsible">Show Misses</button>
+  <div class="misses_content">
+  <p>Misses: ${misses.join(", ")}.</p>
+  </div>
   `;
 
+  // from w3schools 
+  var coll = document.getElementsByClassName("collapsible");
+  var i;
 
+  for (i = 0; i < coll.length; i++) {
+    coll[i].addEventListener("click", function() {
+      this.classList.toggle("active");
+      var content = this.nextElementSibling;
+      if (content.style.display === "block") {
+        content.style.display = "none";
+        this.innerText = "Show Misses"; 
+      } else {
+        content.style.display = "block";
+        this.innerText = "Hide Misses"; 
+      }
+    });
+  } 
+  // end from w3schools 
 
   console.log("Misses:", misses); 
 
