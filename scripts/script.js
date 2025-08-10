@@ -33,6 +33,10 @@ async function processData(csv_string){
 
   genBooksByYearBarGraph(data); 
 
+  genBooksByYearPublished(data); 
+
+  genBooksByAgeWhenRead(data); 
+
   // wikidata
   var read_data = data.filter(function(d){
     return d["Exclusive Shelf"] == "read"; 
@@ -339,7 +343,7 @@ function genBooksByYearBarGraph(data){
   console.log("By year bar chart"); 
 
   // Define dimensions and margins for the chart area
-  const margin = { top: 40, right: 30, bottom: 50, left: 80 },
+  const margin = { top: 60, right: 30, bottom: 50, left: 80 },
     width = 800 - margin.left - margin.right,
     height = 500 - margin.top - margin.bottom;
 
@@ -411,10 +415,10 @@ function genBooksByYearBarGraph(data){
 
   svg.append("text")
     .text("Books Read Each Year")
-    .attr("text-anchor", "end")
+    .attr("text-anchor", "middle")
     .attr("font-size", 30)
-    .attr("x", width - margin.right)
-    .attr("y", y(Math.max(...Object.values(by_year))) * 1.1);  
+    .attr("x", width / 2)
+    .attr("y", (30 - margin.top) / 2);  
 
   svg.append("text")
     .text("Number of Books")
@@ -474,6 +478,133 @@ function genLifeStats(data){
   document.getElementById("AppyStat").innerText = (pageCount / days * 365).toFixed(2); 
 }
 
+function genBooksByYearPublished(data){
+  console.log("By year published bar chart");
+
+  // define dimensions and margins for the chart
+  const margin = { top: 80, right: 30, bottom: 50, left: 80 },
+    width = 800 - margin.left - margin.right, 
+    height = 500 - margin.top - margin.bottom; 
+
+  var svg = d3.select("#BooksByYearPublished")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // prep data 
+  let by_year_pub = {};
+  data.forEach(element => {
+    if(element["Year Published"] != "" || element["Year Published"] == NaN){
+      let year = element["Year Published"]; 
+      by_year_pub[year] = (by_year_pub[year])? by_year_pub[year] + 1 : 1; 
+    }
+  });
+  console.log("by_year_pub:", by_year_pub); 
+
+  // var x = d3.scaleBand()
+  //   .range([0,width])
+  //   .domain(Object.keys(by_year_pub))
+  //   .padding(0.2); 
+  var x = d3.scaleLinear()
+    .range([0, width])
+    .domain([Math.min(...Object.keys(by_year_pub))-1, Math.max(...Object.keys(by_year_pub))+1]); 
+  let overall_bar_width = width / (Math.max(...Object.keys(by_year_pub)) - Math.min(...Object.keys(by_year_pub)));
+  let bar_padding = overall_bar_width * 0.2; 
+  let bar_width = overall_bar_width - bar_padding; 
+
+  svg.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x)
+            .tickFormat(d3.format("d"))      
+    )
+    .selectAll("text")
+      // .attr("transform", "translate(-10,0)rotate(-45)")
+      .style("text-anchor", "middle")
+      .attr("font-size", 15);
+
+  console.log("at y", Math.max(...Object.values(by_year_pub))); 
+  var y = d3.scaleLinear()
+    .domain([0, Math.max(...Object.values(by_year_pub))])
+    .range([height, 0]); 
+
+  svg.append("g")
+    .call(d3.axisLeft(y)); 
+
+  svg.selectAll("mybar")
+    .data(Object.entries(by_year_pub))
+    .enter()
+    .append('rect')
+      .attr("x", function(d) { return x(d[0]) - bar_width / 2})
+      .attr("y", function(d) { return y(d[1]) })
+      .attr("width", bar_width)
+      .attr("height", function(d) { 
+        return height - y(d[1]);
+      })
+      .attr("fill", "#69b3a2")
+      .on("mouseover", function(d, i) {
+        // svg.append("rect")
+        //   .attr("id", "highlight")
+        //   .attr("x", x(i[0]))
+        //   .attr("y", y(i[1]))
+        //   .attr("width", bar_width)
+        //   .attr("height", height - y(i[1]))
+        //   .attr("fill", "#548F82")
+        //   .attr("z", -1); 
+        d3.select(this)
+          .attr("fill", "#548F82")
+        d3.select(this.parentNode)
+          .append("text")
+            .text(`${i[0]}: ${i[1]}`)
+            .attr("id", "barLabel")
+            .attr("x", x(i[0]))
+            .attr("y", y(i[1]) - (overall_bar_width * 3.5) * .1)
+            .attr("text-anchor", "middle")
+            .attr("font-size", overall_bar_width * 3.5); 
+            
+        console.log("done"); 
+      })
+      .on("mouseout", function(d, i) {
+        d3.select(this)
+          .attr("fill", "#69b3a2")
+        d3.select(this.parentNode).select("#barLabel").remove(); 
+
+      })
+  // svg.selectAll("mybar")
+  //   .data(Object.entries(by_year_pub))
+  //   .enter()
+  //   .append(
+
+  svg.append("text")
+    .text("Books Read From Each Year")
+    .attr("text-anchor", "middle")
+    .attr("font-size", 30)
+    .attr("x", width / 2)
+    .attr("y", (30 - margin.top) / 2);  
+      
+  svg.append("text")
+    .text("Number of Books")
+    .attr("text-anchor", "middle")
+    .attr("font-size", 20)
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", -margin.left / 2);
+
+  svg.append("text")
+    .text("Year Published")
+    .attr("text-anchor", "middle")
+    .attr("font-size", 20)
+    .attr("x", width / 2)
+    .attr("y", height + 4 * margin.bottom / 5)
+
+  setupSaveSVG("BooksByYearPublished")
+}
+
+function genBooksByAgeWhenRead(data){
+
+} 
+
 function setupSaveSVG(target, name = target){
   var svg = document.getElementById(target); 
   console.log("svg:", svg); 
@@ -503,3 +634,4 @@ function setupSaveSVG(target, name = target){
   document.getElementById(target).append(newA); 
 
 }
+
