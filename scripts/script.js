@@ -603,6 +603,127 @@ function genBooksByYearPublished(data){
 
 function genBooksByAgeWhenRead(data){
 
+  console.log("By book age when read bar chart");
+
+  // define dimensions and margins for the chart
+  const margin = { top: 80, right: 30, bottom: 50, left: 80 },
+    width = 800 - margin.left - margin.right, 
+    height = 500 - margin.top - margin.bottom; 
+
+  var svg = d3.select("#BooksByYearPublished")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // prep data 
+  let book_age = {};
+  data.forEach(element => {
+    if(element["Year Published"] != "" && element["Year Published"] != NaN && element["Date Read"] != "" && element["Date Read"] != NaN){
+      let year_pub = element["Year Published"]; 
+      let year_read = new Date(element["Date Read"]).getFullYear(); 
+      if(year_read == NaN) return false; 
+      let age = year_read - year_pub; 
+      book_age[age] = (book_age[age])? book_age[age] + 1 : 1; 
+    }
+  });
+  console.log("book_age:", book_age); 
+
+  var x = d3.scaleLinear()
+    .range([width, 0])
+    .domain([Math.min(...Object.keys(book_age))-1, Math.max(...Object.keys(book_age))+1])
+    
+    ; 
+  let overall_bar_width = width / (Math.max(...Object.keys(book_age)) - Math.min(...Object.keys(book_age)));
+  let bar_padding = overall_bar_width * 0.2; 
+  let bar_width = overall_bar_width - bar_padding; 
+
+  svg.append("g")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x)
+            .tickFormat(d3.format("d"))      
+    )
+    .selectAll("text")
+      // .attr("transform", "translate(-10,0)rotate(-45)")
+      .style("text-anchor", "middle")
+      .attr("font-size", 15);
+
+  console.log("at y", Math.max(...Object.values(book_age))); 
+  var y = d3.scaleLinear()
+    .domain([0, Math.max(...Object.values(book_age))])
+    .range([height, 0]); 
+
+  svg.append("g")
+    .call(d3.axisLeft(y)); 
+
+  svg.selectAll("mybar")
+    .data(Object.entries(book_age))
+    .enter()
+    .append('rect')
+      .attr("x", function(d) { return x(d[0]) - bar_width / 2})
+      .attr("y", function(d) { return y(d[1]) })
+      .attr("width", bar_width)
+      .attr("height", function(d) { 
+        return height - y(d[1]);
+      })
+      .attr("fill", "#69b3a2")
+      .on("mouseover", function(d, i) {
+        // svg.append("rect")
+        //   .attr("id", "highlight")
+        //   .attr("x", x(i[0]))
+        //   .attr("y", y(i[1]))
+        //   .attr("width", bar_width)
+        //   .attr("height", height - y(i[1]))
+        //   .attr("fill", "#548F82")
+        //   .attr("z", -1); 
+        d3.select(this)
+          .attr("fill", "#548F82")
+        d3.select(this.parentNode)
+          .append("text")
+            .text(`${i[0]}: ${i[1]}`)
+            .attr("id", "barLabel")
+            .attr("x", x(i[0]))
+            .attr("y", y(i[1]) - (overall_bar_width * 3) * .1)
+            .attr("text-anchor", "middle")
+            .attr("font-size", overall_bar_width * 3); 
+            
+        console.log("done"); 
+      })
+      .on("mouseout", function(d, i) {
+        d3.select(this)
+          .attr("fill", "#69b3a2")
+        d3.select(this.parentNode).select("#barLabel").remove(); 
+
+      })
+  // svg.selectAll("mybar")
+  //   .data(Object.entries(by_year_pub))
+  //   .enter()
+  //   .append(
+
+  svg.append("text")
+    .text("Books Read By Age of Book When Read")
+    .attr("text-anchor", "middle")
+    .attr("font-size", 30)
+    .attr("x", width / 2)
+    .attr("y", (30 - margin.top) / 2);  
+      
+  svg.append("text")
+    .text("Number of Books")
+    .attr("text-anchor", "middle")
+    .attr("font-size", 20)
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", -margin.left / 2);
+
+  svg.append("text")
+    .text("Book Age When Read In Years")
+    .attr("text-anchor", "middle")
+    .attr("font-size", 20)
+    .attr("x", width / 2)
+    .attr("y", height + 4 * margin.bottom / 5)
+
+  setupSaveSVG("BooksByAgeWhenRead")
 } 
 
 function setupSaveSVG(target, name = target){
